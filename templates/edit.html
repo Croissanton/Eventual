@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Bootstrap Core CSS -->
+<link href="../static/css/bootstrap.min.css" rel="stylesheet">
+<link href="../static/css/style.css" rel="stylesheet">
+
+<div class="row">
+    <div class="col-lg-12 text-center">
+        <h1>Editar Evento <span class="glyphicon glyphicon-edit" aria-hidden="true"></span></h1>
+    </div>
+</div>
+<br/>
+<br/>
+<div class="row">
+    <div class="col-md-2"></div>
+    <div class="col-md-8">
+        <form class="form-horizontal" role="form" action="" method="post" enctype="multipart/form-data">
+            <!-- Nombre -->
+            <div class="form-group">
+                <label for="inputName" class="col-sm-3 control-label">Nombre</label>
+
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="inputName" id="inputName" placeholder="Nombre del evento" value="{{ event.nombre }}" required>
+                </div>
+            </div>
+            
+            <!-- Lugar -->
+            <div class="form-group">
+                <label for="inputLocation" class="col-sm-3 control-label">Lugar</label>
+
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="inputLocation" id="inputLocation" placeholder="Lugar del evento" value="{{ event.lugar }}" required>
+                </div>
+            </div>
+            
+            <!-- Fecha y Hora -->
+            <div class="form-group">
+                <label for="inputTimestamp" class="col-sm-3 control-label">Fecha y Hora</label>
+
+                <div class="col-sm-6">
+                    <input type="datetime-local" class="form-control" name="inputTimestamp" id="inputTimestamp" 
+                           value="{{ event.timestamp.strftime('%Y-%m-%dT%H:%M') }}" required>
+                </div>
+            </div>
+            
+            <!-- Imagen -->
+            <div class="form-group">
+                <label for="image" class="col-sm-3 control-label">Imagen</label>
+
+                <div class="col-sm-6">
+                    {% if event.imagen %}
+                        <div>
+                            <img src="{{ event.imagen }}" alt="Imagen del evento" width="100" height="100">
+                        </div>
+                        <br/>
+                    {% endif %}
+                    <input type="file" class="form-control" name="image" id="image" accept="image/*">
+                </div>
+            </div>
+            
+            <!-- Botones -->
+            <div class="form-group text-center">
+                <button type="submit" value="submit" class="btn btn-warning">Actualizar</button>
+                <a class="btn btn-danger" href="/delete/{{ event._id }}">Eliminar</a>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-2"></div>
+</div>
+
+<script src="../static/js/jquery.js"></script>
+<script src="../static/js/bootstrap.min.js"></script>
+
+{% endblock content %}

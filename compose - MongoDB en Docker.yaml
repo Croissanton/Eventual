@@ -1,0 +1,34 @@
+version: '3.1'
+
+services:
+  mongodb:
+    # Use root/example as user/password credentials
+    # mongodb://root:example@mongodb:27017
+    image: mongo
+    restart: always
+    ports:
+      - 27018:27017    # para no chocar con el mongoDB de localhost
+    volumes:
+      - ./data:/data/db   # uso un volumen montado en la carpeta del host ./data
+    # - mongodb_data:/data/db data/db   # para usar un volumen montado en el sistema de almacenamiento de Docker
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      # MONGO_INITDB_DATABASE: misAnuncios
+  server:
+    # http://localhost:8000
+    build: .
+    container_name: misAnuncios
+    # environment:
+    #  MONGO_URI: mongodb://root:example@mongodb:27017/
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+
+# volumes:
+#  mongodb_data:
+#    driver: local
+
+  
+

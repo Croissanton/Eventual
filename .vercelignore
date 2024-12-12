@@ -1,0 +1,11 @@
+.dockerignore
+.env
+.gitignore
+.vercelignore	
+.*
+compose*.yaml
+data
+Dockerfile
+Procfile.*
+Readme.md
+runtime.txt
