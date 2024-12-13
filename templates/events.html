@@ -15,7 +15,18 @@
     </div>
 </div>
 <br/>
-{% if session['user']%}
+
+<!-- Address Input Form -->
+<form method="POST" action="/">
+    <div class="form-group">
+        <label for="address">Ingrese una dirección postal:</label>
+        <input type="text" class="form-control" id="address" name="address" placeholder="Ejemplo: Calle Falsa 123">
+    </div>
+    <button type="submit" class="btn btn-primary">Buscar Eventos</button>
+</form>
+<br/>
+
+{% if session['user'] %}
     <a class="btn btn-primary" href="/new">
         Crear evento
         <span style="margin-left: 5px;" class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
@@ -31,39 +42,21 @@
         <table class="table table-bordered">
             <thead>
                 <th>Nombre</th>
-                <th>Timestamp</th>
-                <th>Lugar</th>
-                <th>Mapa</th>
                 <th>Organizador</th>
-                <th>Imagen</th>
                 <th>Acciones</th>
             </thead>
             <tbody>
                 {% for event in events %}
                 <tr>
                     <td>{{ event.nombre }}</td>
-                    <td>{{ event.timestamp.strftime('%d-%m-%Y %H:%M') }}</td>
-                    <td>{{ event.lugar }}</td>
-                    <td>
-                        {% if event.lat and event.lon %}
-                            <div id="map-{{ event._id }}" class="map" data-lat="{{ event.lat }}" data-lng="{{ event.lon }}" style="width: 200px; height: 150px;"></div>
-                        {% else %}
-                            No disponible
-                        {% endif %}
-                    </td>
                     <td>{{ event.organizador }}</td>
                     <td>
-                        {% if event.imagen %}
-                            <img src="{{ event.imagen }}" width="50" height="50">
-                        {% else %}
-                            N/A
+                        <a class="btn btn-info" href="{{ url_for('event_details', _id=event._id) }}">Detalles</a>
+                        {% if session['user']['email'] == event.organizador %}
+                            <a class="btn btn-warning" href="{{ url_for('editEvent', _id=event._id) }}">Editar</a>
+                            <a class="btn btn-danger" href="{{ url_for('deleteEvent', _id=event._id) }}">Eliminar</a>
                         {% endif %}
                     </td>
-                    {% if session['user'] and session['user']['email'] == event.organizador %}
-                    <td>
-                        <a class="btn btn-warning" href="/edit/{{ event._id }}">Editar</a>
-                    </td>
-                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -71,35 +64,8 @@
     </div>
     <div class="col-md-1"></div>
 </div>
-
-<!-- Initialize Leaflet Maps -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.map').forEach(mapElement => {
-            const lat = parseFloat(mapElement.getAttribute('data-lat'));
-            const lng = parseFloat(mapElement.getAttribute('data-lng'));
-
-            // Validate coordinates
-            if (isNaN(lat) || isNaN(lng)) {
-                console.warn(`Latitud o longitud inválida para el mapa: ${mapElement.id}`);
-                return;
-            }
-
-            // Initialize map
-            const mapId = mapElement.id;
-            const map = L.map(mapId).setView([lat, lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(map);
-
-            // Add marker
-            L.marker([lat, lng]).addTo(map);
-        });
-    });
-</script>
-
 {% else %}
-    <p>No hay eventos disponibles.</p>
+    <p>No hay eventos próximos disponibles.</p>
 {% endif %}
 
 {% endblock %}

@@ -14,6 +14,9 @@
     <!-- Bootstrap Core CSS -->
     <link href="static/css/bootstrap.min.css" rel="stylesheet">
     <link href="static/css/style.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          crossorigin=""/>
 
     <!-- Custom CSS -->
     <style>
@@ -56,12 +59,10 @@
                 </li>
                 <li>
                     {% if not session['user'] %}
-                        <a href="/login"> <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Login</a>
+                        <a href="/login" class="navbar-link"> <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Login</a>
                     {% else %}
-                        <a href="/logout"> <span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Logout</a>
-                        <!-- mensaje bienvenido a session['user']['email'] -->
-                        <span class="glyphicon alert-info" aria-hidden="true"> Bienvenido {{ session['user']['email'] }}</span>
-                         
+                        <span class="navbar-text"> <span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{ session['user']['email'] }}</span>
+                        <a href="/logout" class="navbar-link"> <span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Logout</a>
                     {% endif %}
                 </li>
             </ul>
@@ -90,6 +91,9 @@
 <script type="text/javascript">
     $('.carousel').carousel();
 </script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        crossorigin=""></script>
 
 </body>
 

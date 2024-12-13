@@ -66,33 +66,22 @@ logs = db.log              # logs = db['log']
 # Definicion de metodos para endpoints
 
 @app.route('/', methods=['GET', 'POST'])
-def showEvents():
+def home():
+    events_list = []
     if request.method == 'POST':
-        address = request.form['address']
-        location = geolocator.geocode(address)
-        if location:
-            user_lat = location.latitude
-            user_lon = location.longitude
-            # Find events within 0.2 degrees
-            nearby_events = events.find({
-                'lat': {'$gte': user_lat - 0.2, '$lte': user_lat + 0.2},
-                'lon': {'$gte': user_lon - 0.2, '$lte': user_lon + 0.2},
-                'timestamp': {'$gte': datetime.now()}
-            }).sort('timestamp', pymongo.ASCENDING)
-            event_list = list(nearby_events)
-            event_list_display = event_list  # Renamed variable
-        else:
-            event_list_display = []       # Renamed variable
-            user_lat = None
-            user_lon = None
-    else:
-        event_list = list(events.find().sort('timestamp', pymongo.ASCENDING))
-        print("events: ", event_list)
-        event_list_display = event_list      # Renamed variable
-        user_lat = None
-        user_lon = None
-
-    return render_template('events.html', events=event_list_display, user_lat=user_lat, user_lon=user_lon)  # Updated reference
+        address = request.form.get('address')
+        if address:
+            location = geolocator.geocode(address)
+            if location:
+                lat = location.latitude
+                lon = location.longitude
+                # Query events within 0.2 degrees
+                events_cursor = events.find({
+                    'lat': {'$gte': lat - 0.2, '$lte': lat + 0.2},
+                    'lon': {'$gte': lon - 0.2, '$lte': lon + 0.2}
+                }).sort('timestamp', 1)
+                events_list = list(events_cursor)
+    return render_template('events.html', events=events_list)
 
 @app.route('/login')
 def login():
@@ -114,12 +103,12 @@ def authorize():
     }
     logs.insert_one(log_entry)
     
-    return redirect(url_for('showEvents'))
+    return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
-    return redirect(url_for('showEvents'))
+    return redirect(url_for('home'))
     
 @app.route('/new', methods=['GET', 'POST'])
 def newEvent():
@@ -158,7 +147,7 @@ def newEvent():
         }
 
         events.insert_one(event)
-        return redirect(url_for('showEvents'))
+        return redirect(url_for('home'))
 
 @app.route('/edit/<_id>', methods = ['GET', 'POST'])
 def editEvent(_id):
@@ -198,7 +187,7 @@ def editEvent(_id):
             'imagen': image_url
         }
         events.update_one({'_id': ObjectId(_id)}, {'$set': updated_event})
-        return redirect(url_for('showEvents'))
+        return redirect(url_for('home'))
 
 @app.route('/delete/<_id>', methods = ['GET'])
 def deleteEvent(_id):
@@ -218,12 +207,14 @@ def deleteEvent(_id):
 
 
     events.delete_one({'_id': ObjectId(_id)})
-    return redirect(url_for('showEvents'))
+    return redirect(url_for('home'))
 
 @app.route('/event/<_id>', methods=['GET'])
-def eventDetails(_id):
+def event_details(_id):
     event = events.find_one({'_id': ObjectId(_id)})
-    return render_template('details.html', event=event)
+    if event:
+        return render_template('details.html', event=event)
+    return "Event not found", 404
 
 @app.route('/events', methods=['GET'])
 def viewEvents():
