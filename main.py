@@ -14,22 +14,13 @@ from geopy.geocoders import Nominatim
 
 
 
-app = Flask(__name__)
-app.secret_key = 'random_secret_key'
-
-app.config.update(
-    SESSION_COOKIE_SECURE=True,  # Ensure cookies are sent only over HTTPS
-    SESSION_COOKIE_SAMESITE='Lax',  # Restrict cross-site cookie usage
-    SESSION_COOKIE_HTTPONLY=True  # Prevent access to cookies from JavaScript
-)
-
-
-oauth = OAuth(app)
-oauth.init_app(app)
-
-
 env = Env()
 env.read_env()  # read .env file, if it exists
+
+app = Flask(__name__)
+app.secret_key = env('FLASK_SECRET_KEY')
+oauth = OAuth(app)
+oauth.init_app(app)
 
 # Configure your OAuth provider (e.g., Google)
 oauth.register(
@@ -37,9 +28,7 @@ oauth.register(
     client_id=env('GOOGLE_CLIENT_ID'),
     client_secret=env('GOOGLE_CLIENT_SECRET'),
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid profile email',
-                   'redirect_uri': f'https://eventual-pied.vercel.app/authorize'}
-    
+    client_kwargs={'scope': 'openid profile email'}
 )
 
 # Configure Cloudinary
@@ -236,9 +225,6 @@ if __name__ == '__main__':
     # or Heroku, a webserver process such as Gunicorn will serve the app. In App
     # Engine, this can be configured by adding an `entrypoint` to app.yaml.
     app.run(host='127.0.0.1', port=8000, debug=True)
-
-    #Gunicorn
-    # ejec
-
+    
 
     # ejecucion en local: python main.py
