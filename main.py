@@ -11,7 +11,7 @@ from cloudinary import CloudinaryImage
 import cloudinary.uploader
 import cloudinary.api
 from geopy.geocoders import Nominatim
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 env = Env()
@@ -21,6 +21,14 @@ app = Flask(__name__)
 app.secret_key = env('FLASK_SECRET_KEY')
 oauth = OAuth(app)
 oauth.init_app(app)
+
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1)
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PREFERRED_URL_SCHEME='https'
+)
 
 # Configure your OAuth provider (e.g., Google)
 oauth.register(
@@ -59,8 +67,6 @@ users = db.usuario         # users = db['usuario']
 events = db.evento         # events = db['evento']
 
 logs = db.log              # logs = db['log']
-
-session = {}
 
 # Definicion de metodos para endpoints
 
