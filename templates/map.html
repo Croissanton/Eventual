@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Include Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""/>
+
+<!-- Include Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        crossorigin=""></script>
+
+<div class="row">
+    <div class="col-lg-12 text-center">
+        <h1>Mi Mapa</h1>
+    </div>
+</div>
+<br/>
+
+<!-- Formulario para buscar otro usuario -->
+<form method="POST" action="/">
+    <div class="form-group">
+        <label for="email">Ingrese un email para ver su mapa:</label>
+        <input type="email" class="form-control" id="email" name="email" placeholder="usuario@example.com">
+    </div>
+    <button type="submit" class="btn btn-primary">Ver mapa</button>
+</form>
+<br/>
+
+{% if session.get('user') and session['user']['email'] == email %}
+    <a class="btn btn-primary" href="{{ url_for('newLocation') }}">Añadir Marcador</a>
+    <br/><br/>
+{% endif %}
+
+<!-- Mostrar el mapa -->
+<div>
+    {{ mapa|safe }}
+</div>
+
+<!-- Mostrar imágenes en la parte inferior -->
+{% if session.get('user') and locations %}
+    <h2>Imágenes de tus ubicaciones</h2>
+    <div class="row">
+        {% for loc in locations %}
+            {% if loc.imagen %}
+                <div class="col-md-3">
+                    <img src="{{ loc.imagen }}" class="img-thumbnail" alt="{{ loc.lugar }}">
+                    <p>{{ loc.lugar }}</p>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Mostrar visitas si es el usuario actual -->
+{% if user_visits %}
+<h2>Visitas recibidas</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Fecha y Hora</th>
+            <th>Email del visitante</th>
+            <th>Token OAuth</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for visit in user_visits %}
+        <tr>
+            <td>{{ visit.timestamp }}</td>
+            <td>{{ visit.visitor_email }}</td>
+            <td>{{ visit.token }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

@@ -9,11 +9,11 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>misAnuncios (MongoDB)</title>
+    <title>MiMapa (MongoDB)</title>
 
     <!-- Bootstrap Core CSS -->
-    <link href="static/css/bootstrap.min.css" rel="stylesheet">
-    <link href="static/css/style.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           crossorigin=""/>
@@ -54,7 +54,7 @@
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <ul class="nav navbar-nav">
                 <li>
-                    <a href="/"> <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span> Eventual (MongoDB) </a>
+                    <a href="/"> <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span> MiMapa (MongoDB) </a>
 
                 </li>
                 <li>
@@ -84,10 +84,10 @@
 <!-- /.container -->
 
 <!-- jQuery Version 1.11.1 -->
-<script src="static/js/jquery.js"></script>
+<script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
 
 <!-- Bootstrap Core JavaScript -->
-<script src="static/js/bootstrap.min.js"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
 <script type="text/javascript">
     $('.carousel').carousel();
 </script>

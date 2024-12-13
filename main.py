@@ -2,9 +2,10 @@ import pymongo
 
 from environs import Env
 from bson import ObjectId
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from authlib.integrations.flask_client import OAuth
 from datetime import datetime
+import folium
 
 import cloudinary
 from cloudinary import CloudinaryImage
@@ -33,8 +34,8 @@ app.config.update(
 # Configure your OAuth provider (e.g., Google)
 oauth.register(
     name='google',
-    client_id=env('GOOGLE_CLIENT_ID'),
-    client_secret=env('GOOGLE_CLIENT_SECRET'),
+    client_id=env('GOOGLE_LOCAL_CLIENT_ID'),
+    client_secret=env('GOOGLE_LOCAL_CLIENT_SECRET'),
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid profile email'}
 )
@@ -47,7 +48,7 @@ cloudinary.config(
 )
 
 # Initialize geocoder
-geolocator = Nominatim(user_agent="EventualApp")
+geolocator = Nominatim(user_agent="LocationualApp")
 
 uri = env('MONGO_URI')              # establecer la variable de entorno MONGO_URI con la URI de la base de datos
                                     # MongoDB local:
@@ -64,29 +65,13 @@ db = client.ExamenFrontend   # db = client['misAnuncios']
 
 users = db.usuario         # users = db['usuario']
 
-events = db.evento         # events = db['evento']
+locations = db.locationo         # locations = db['locationo']
 
 logs = db.log              # logs = db['log']
 
-# Definicion de metodos para endpoints
+visits = db.visita
 
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    events_list = []
-    if request.method == 'POST':
-        address = request.form.get('address')
-        if address:
-            location = geolocator.geocode(address)
-            if location:
-                lat = location.latitude
-                lon = location.longitude
-                # Query events within 0.2 degrees
-                events_cursor = events.find({
-                    'lat': {'$gte': lat - 0.2, '$lte': lat + 0.2},
-                    'lon': {'$gte': lon - 0.2, '$lte': lon + 0.2}
-                }).sort('timestamp', 1)
-                events_list = list(events_cursor)
-    return render_template('events.html', events=events_list)
+# Definicion de metodos para endpoints
 
 @app.route('/login')
 def login():
@@ -98,15 +83,7 @@ def authorize():
     nonce = session.pop('nonce', None)
     user = oauth.google.parse_id_token(token, nonce=nonce)
     session['user'] = user
-    
-    # Log login information
-    log_entry = {
-        'timestamp': datetime.now(),
-        'email': user['email'],
-        'caducidad': datetime.fromtimestamp(token['expires_at']),
-        'token': token['access_token']
-    }
-    logs.insert_one(log_entry)
+    session['token'] = token
     
     return redirect(url_for('home'))
 
@@ -114,117 +91,87 @@ def authorize():
 def logout():
     session.pop('user', None)
     return redirect(url_for('home'))
-    
-@app.route('/new', methods=['GET', 'POST'])
-def newEvent():
 
+# METODOS PARA FUNCIONALIDADES
+
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    if 'user' in session:
+        email = session['user']['email']
+        if request.method == 'POST':
+            # Obtener el email ingresado para visualizar otro mapa
+            search_email = request.form.get('email')
+            if search_email == email:
+                return redirect(url_for('home'))
+            if search_email:
+                email = search_email
+                # Registrar la visita
+                visit = {
+                    'timestamp': datetime.now(),
+                    'visited_email': email,
+                    'visitor_email': session['user']['email'],
+                    'token': session['token']['access_token']
+                }
+                visits.insert_one(visit)
+        # Obtener ubicaciones del usuario
+        user_locations = list(locations.find({'email': email}))
+        # Crear mapa
+        if user_locations:
+            start_coords = (user_locations[0]['lat'], user_locations[0]['lon'])
+        else:
+            start_coords = (0, 0)
+        mapa = folium.Map(location=start_coords, zoom_start=2)
+        # Agregar marcadores
+        for loc in user_locations:
+            popup_content = f"<b>{loc['lugar']}</b>"
+            if loc['imagen']:
+                popup_content += f"<br><img src='{loc['imagen']}' width='100'>"
+            folium.Marker(
+                location=[loc['lat'], loc['lon']],
+                popup=folium.Popup(popup_content, max_width=200)
+            ).add_to(mapa)
+        mapa_html = mapa._repr_html_()
+        # Obtener visitas si es el propio usuario
+        user_visits = []
+        if email == session['user']['email']:
+            user_visits = list(visits.find({'visited_email': email}).sort('timestamp', pymongo.DESCENDING))
+        return render_template('map.html', mapa=mapa_html, user_visits=user_visits, email=email)
+    else:
+        return redirect(url_for('login'))
+
+@app.route('/new', methods=['GET', 'POST'])
+def newLocation():
+    if 'user' not in session:
+        return redirect(url_for('login'))
     if request.method == 'GET':
         return render_template('new.html')
     else:
-        # Geocoding the address
-        location = geolocator.geocode(request.form['inputLocation'])
+        # Geocodificar la dirección
+        location_name = request.form['inputLocation']
+        location = geolocator.geocode(location_name)
         if location:
             lat = location.latitude
             lon = location.longitude
         else:
-            lat = None
-            lon = None
-
-        # Handling image upload
+            flash('No se pudo obtener las coordenadas de la ubicación.')
+            return redirect(url_for('newLocation'))
+        # Manejar carga de imagen
         image = request.files.get('image')
         if image:
             upload_result = cloudinary.uploader.upload(image)
             image_url = upload_result.get('secure_url')
         else:
             image_url = ''
-
-        event = {
-            'nombre': request.form['inputName'],
-            # Option 1: Update format string to include 'T'
-            'timestamp': datetime.strptime(request.form['inputTimestamp'], '%Y-%m-%dT%H:%M'),
-            # Option 2: Use fromisoformat
-            # 'timestamp': datetime.fromisoformat(request.form['inputTimestamp']),
-            'lugar': request.form['inputLocation'],
-            'lat': lat,
-            'lon': lon,
-            'organizador': session['user']['email'],
-            'imagen': image_url
-        }
-
-        events.insert_one(event)
-        return redirect(url_for('home'))
-
-@app.route('/edit/<_id>', methods = ['GET', 'POST'])
-def editEvent(_id):
-    
-    if request.method == 'GET' :
-        event = events.find_one({'_id': ObjectId(_id)})
-        return render_template('edit.html', event = event)
-    else:
-        # Ensure the user is the organizer
-        event = events.find_one({'_id': ObjectId(_id)})
-        if event['organizador'] != session['user']['email']:
-            return "Unauthorized", 403
-        
-        # Geocoding the address
-        location = geolocator.geocode(request.form['inputLocation'])
-        if location:
-            lat = location.latitude
-            lon = location.longitude
-        else:
-            lat = event.get('lat')
-            lon = event.get('lon')
-        
-        # Handling image upload
-        image = request.files.get('image')
-        if image:
-            upload_result = cloudinary.uploader.upload(image)
-            image_url = upload_result.get('secure_url')
-        else:
-            image_url = event.get('imagen', '')
-        
-        updated_event = {
-            'nombre': request.form['inputName'],
-            'timestamp': datetime.strptime(request.form['inputTimestamp'], '%Y-%m-%dT%H:%M'),
-            'lugar': request.form['inputLocation'],
+        new_location = {
+            'email': session['user']['email'],
+            'lugar': location_name,
             'lat': lat,
             'lon': lon,
             'imagen': image_url
         }
-        events.update_one({'_id': ObjectId(_id)}, {'$set': updated_event})
+        locations.insert_one(new_location)
         return redirect(url_for('home'))
 
-@app.route('/delete/<_id>', methods = ['GET'])
-def deleteEvent(_id):
-    event = events.find_one({'_id': ObjectId(_id)})
-    #Ensure the user is the organizer
-    if event['organizador'] != session['user']['email']:
-        return "Unauthorized", 403
-     # Delete should also delete the image from Cloudinary
-    if event['imagen']:
-        # Manually extract the public_id from the URL
-        url_parts = event['imagen'].split('/')
-        file_name = url_parts[-1]  # Get the last part of the URL (e.g., vgq9cclmrgayqkn16cyi.png)
-        public_id = file_name.rsplit('.', 1)[0]  # Remove the file extension
-        print("AQUI VA : " + public_id)  # Debugging
-        # Delete from Cloudinary
-        cloudinary.uploader.destroy(public_id)
-
-
-    events.delete_one({'_id': ObjectId(_id)})
-    return redirect(url_for('home'))
-
-@app.route('/event/<_id>', methods=['GET'])
-def event_details(_id):
-    event = events.find_one({'_id': ObjectId(_id)})
-    if event:
-        return render_template('details.html', event=event)
-    return "Event not found", 404
-
-@app.route('/events', methods=['GET'])
-def viewEvents():
-    all_events = list(events.find().sort('timestamp', pymongo.DESCENDING))
-    return render_template('events.html', events=all_events)
 
 if __name__ == '__main__':
     # This is used when running locally only. When deploying to Google App Engine
@@ -234,3 +181,5 @@ if __name__ == '__main__':
     
 
     # ejecucion en local: python main.py
+
+
