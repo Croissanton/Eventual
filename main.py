@@ -50,8 +50,6 @@ uri = env('MONGO_URI')              # establecer la variable de entorno MONGO_UR
                                     # MongoDB en Docker
                                     #     MONGO_URI = mongodb://root:example@mongodb:27017
 
-print("MONGO_URI: ",uri)
-
 client = pymongo.MongoClient(uri)
 
 db = client.ExamenFrontend   # db = client['misAnuncios']
@@ -62,6 +60,8 @@ users = db.usuario         # users = db['usuario']
 events = db.evento         # events = db['evento']
 
 logs = db.log              # logs = db['log']
+
+session = {}
 
 # Definicion de metodos para endpoints
 

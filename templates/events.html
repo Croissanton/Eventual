@@ -26,7 +26,7 @@
 </form>
 <br/>
 
-{% if session['user'] %}
+{% if session.get('user') %}
     <a class="btn btn-primary" href="/new">
         Crear evento
         <span style="margin-left: 5px;" class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
@@ -52,7 +52,7 @@
                     <td>{{ event.organizador }}</td>
                     <td>
                         <a class="btn btn-info" href="{{ url_for('event_details', _id=event._id) }}">Detalles</a>
-                        {% if session['user']['email'] == event.organizador %}
+                        {% if session.get('user') and session['user'].get('email') == event.organizador %}
                             <a class="btn btn-warning" href="{{ url_for('editEvent', _id=event._id) }}">Editar</a>
                             <a class="btn btn-danger" href="{{ url_for('deleteEvent', _id=event._id) }}">Eliminar</a>
                         {% endif %}
